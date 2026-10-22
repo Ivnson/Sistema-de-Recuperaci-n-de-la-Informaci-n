@@ -69,7 +69,7 @@ public class CONSULTA {
 			}
 			if (idActual != null) {
 				palabras = obtener5PrimerasPalabras(texto.toString().trim());
-				hacerConsulta(consulta, palabras, escribir, palabras);
+				hacerConsulta(consulta, palabras, escribir, idActual);
 			}
 			
 		} catch (Exception e) {
@@ -99,22 +99,33 @@ public class CONSULTA {
 	private static void hacerConsulta (HttpSolrClient consulta, String palabras, BufferedWriter escribir, String idActual)
 	{
 		SolrQuery query = new SolrQuery() ;
-		//query.set("df", "titulo");
-		query.setQuery("titulo:(" + palabras + ")") ; 
-		query.setFields("id","titulo","resumen") ; 
+
+		query.setQuery(palabras);
+		query.set("defType", "edismax");
 		
-		//query.set("q.op", "AND"); PARA QUE APAREZCAN UNICAMENTE UN DOCUMENTO 
+		//APLICANDO PESOS EN DISTINTOS CAMPOS -> TITULO VALE MAS QUE RESUMEN 
+		query.set("qf", "titulo^2.0 resumen^1.0") ; 
+		
+		//BENEFICIAMOS EL SCORE SI LAS PALABRAS APARECEN JUNTAS 
+		query.set("pf", "titulo^2.5 resumen^1.5") ; 
+		
+		//PERMITIMOS QUE HAYA 2 PALABRAS AJENAS DE POR MEDIO 
+		query.set("ps", 2) ; 
+		
+		query.setFields("id","score") ; 
+		query.setRows(50) ; 
+		
 		org.apache.solr.client.solrj.response.QueryResponse rsp = null;
 		try {
 			rsp = consulta.query(query);
 			SolrDocumentList docs = rsp.getResults() ; 
 			
-			escribir.write("CONSULTA ID -> " + idActual + "\n");
-			escribir.write("CONSULTA -> " + palabras +"\n");
-			escribir.write("DOCUMENTOS ENCONTRADOS -> " + docs.getNumFound() + "\n\n");
-			
 			for (int i = 0; i < docs.size(); i++) {
-				escribir.write("Documento " + (i+1) + " : " + docs.get(i).toString());
+			    String idDoc = (String) docs.get(i).getFieldValue("id");
+			    Float score = (Float) docs.get(i).getFieldValue("score");
+
+			    escribir.write(idActual + " Q0 " + idDoc + " " + (i+1) +
+			    		" " + score + " USUARIO->IVAN\n");
 			}
 			
 			escribir.write("\n------------------------------------\n\n");

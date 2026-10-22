@@ -20,7 +20,7 @@ public class IndexacionCorpus {
 		try (SolrClient cliente = new HttpSolrClient.Builder("http://localhost:8983/solr").build()) {
 			System.out.println("LEYENDO EL CORPUS\n");
 
-			//leerFicheroMedAll(cliente);
+			leerFicheroMedAll(cliente);
 
 		} catch (Exception e) {
 			e.printStackTrace();
